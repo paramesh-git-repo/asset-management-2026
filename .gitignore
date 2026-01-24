@@ -1,0 +1,17 @@
+# Project-level ignores
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.DS_Store
+
+# Env files (keep out of git)
+**/.env
+**/.env.*
+
+# Uploads / generated assets
+backend/uploads/
+backend/uploads/**
+
+# Logs
+**/*.log
+
