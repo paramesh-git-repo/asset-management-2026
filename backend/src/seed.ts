@@ -18,13 +18,10 @@ const seedDatabase = async () => {
     if (existingAdmin) {
       console.log('Admin user already exists');
       console.log('Email:', adminEmail);
-      // We don't know the password if it's hashed, but we can reset it if needed.
-      // For now, let's assume the user might know it or we can update it.
-      // Let's just update the password to be sure.
       existingAdmin.password = adminPassword;
       existingAdmin.name = existingAdmin.name || adminName;
       existingAdmin.status = existingAdmin.status || 'ACTIVE';
-       // The pre-save hook will hash it
+      existingAdmin.markModified('password'); // ensure pre-save hashes the password
       await existingAdmin.save();
       console.log('Admin password reset to:', adminPassword);
     } else {
