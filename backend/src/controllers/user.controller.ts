@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { updateProfileImage, deleteProfileImage, updateProfileName } from '../services/user.service';
 import { updateProfileSchema } from '../utils/zodSchemas';
+import { logger } from '../utils/logger';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,6 +24,7 @@ export const uploadProfileImageController = async (req: AuthRequest, res: Respon
     }
 
     const user = await updateProfileImage(req.user.userId, req.file.filename);
+    logger.info('Profile image upload', { userId: req.user.userId, size: req.file.size, mimeType: req.file.mimetype });
 
     res.status(200).json({
       message: 'Profile image uploaded successfully',

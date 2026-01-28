@@ -97,14 +97,20 @@ export const Settings: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Profile image must be less than 5 MB', 'error');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image size exceeds 10MB limit', 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showToast('Only JPEG, PNG, WEBP allowed', 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     setIsUploadingImage(true);
@@ -285,7 +291,7 @@ export const Settings: React.FC = () => {
                 <Input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   onChange={handlePhotoChange}
                 />

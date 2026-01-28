@@ -30,24 +30,18 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter - only accept images
-const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = /jpeg|jpg|png/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
-  if (extname && mimetype) {
+const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (ALLOWED_MIMES.includes(file.mimetype as (typeof ALLOWED_MIMES)[number])) {
     return cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only JPEG, JPG, and PNG images are allowed.'));
   }
+  cb(new Error('Only JPEG, PNG, WEBP allowed'));
 };
 
-// Configure multer
 export const uploadProfileImage = multer({
   storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
+  limits: { fileSize: MAX_FILE_SIZE },
   fileFilter,
 });

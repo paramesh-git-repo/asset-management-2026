@@ -9,23 +9,19 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Multer error handler middleware
 const handleMulterError = (err: any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'Profile image must be less than 5 MB' });
+      return res.status(413).json({ message: 'Image size exceeds 10MB limit' });
     }
     return res.status(400).json({ message: err.message || 'File upload error' });
   }
-  
-  if (err && err.message && err.message.includes('Invalid file type')) {
-    return res.status(400).json({ message: 'Invalid file type. Only JPEG, JPG, and PNG images are allowed.' });
+  if (err && err.message && (err.message.includes('Only JPEG, PNG, WEBP allowed') || err.message.includes('Invalid file type'))) {
+    return res.status(400).json({ message: 'Only JPEG, PNG, WEBP allowed' });
   }
-
   if (err && err.message && err.message.includes('User ID not found')) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
-
   next(err);
 };
 
