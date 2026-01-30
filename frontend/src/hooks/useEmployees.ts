@@ -36,8 +36,9 @@ export const useEmployees = (options?: UseEmployeesOptions) => {
       ) as UpdateEmployeeRequest;
       return employeeApi.updateEmployee(id, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
       options?.onSuccess?.('Employee updated successfully', 'success');
     },
     onError: (error: any) => {
@@ -48,12 +49,25 @@ export const useEmployees = (options?: UseEmployeesOptions) => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'ACTIVE' | 'INACTIVE' }) =>
       employeeApi.updateEmployeeStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
       options?.onSuccess?.('Employee status updated successfully', 'success');
     },
     onError: (error: any) => {
       options?.onError?.(error.response?.data?.message || 'Failed to update employee status');
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => employeeApi.deactivateEmployee(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      options?.onSuccess?.('Employee deactivated successfully', 'success');
+    },
+    onError: (error: any) => {
+      options?.onError?.(error.response?.data?.message || 'Failed to deactivate employee');
     },
   });
 
@@ -64,9 +78,11 @@ export const useEmployees = (options?: UseEmployeesOptions) => {
     createEmployee: createMutation.mutate,
     updateEmployee: updateMutation.mutate,
     updateEmployeeStatus: updateStatusMutation.mutate,
+    deactivateEmployee: deactivateMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
+    isDeactivating: deactivateMutation.isPending,
   };
 };
 

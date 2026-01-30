@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { EMPLOYEE_STATUS } from '../../utils/constants';
-import { EmployeeStatus } from '../../types/employee.types';
+import { EmployeeStatus, EMPLOYEE_COMPANIES } from '../../types/employee.types';
 import { employeeApi } from '../../api/employee.api';
 
 interface EmployeeFormProps {
@@ -33,6 +33,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   });
 
   const [formData, setFormData] = useState<{
+    company: string;
+    employeeId: string;
     name: string;
     email: string;
     phone: string;
@@ -40,7 +42,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     position: string;
     status: string;
     hireDate: string;
+    exitDate: string;
   }>({
+    company: '',
+    employeeId: '',
     name: '',
     email: '',
     phone: '',
@@ -48,43 +53,62 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     position: '',
     status: EMPLOYEE_STATUS.ACTIVE,
     hireDate: '',
+    exitDate: '',
   });
-
-  const [employeeIdDisplay, setEmployeeIdDisplay] = useState<string>('');
 
   useEffect(() => {
     if (employee) {
       setFormData({
+        company: employee.company || '',
+        employeeId: employee.employeeId || '',
         name: employee.name,
         email: employee.email,
         phone: employee.phone,
         department: employee.department,
         position: employee.position,
-        status: employee.status.toUpperCase(),
+        status: employee.status === 'Relieved' ? 'Relieved' : employee.status.toUpperCase(),
         hireDate: employee.hireDate.split('T')[0],
+        exitDate: employee.exitDate ? employee.exitDate.split('T')[0] : '',
       });
-      setEmployeeIdDisplay(employee.employeeId || '');
     }
   }, [employee]);
 
   useEffect(() => {
-    // For "Add Employee", show the next auto-generated ID (like Asset ID UX)
-    if (!employeeId) {
+    if (!employeeId && formData.company) {
       employeeApi
-        .getNextEmployeeId()
-        .then((id) => setEmployeeIdDisplay(id))
-        .catch(() => setEmployeeIdDisplay('Auto-generated'));
+        .getNextEmployeeId(formData.company)
+        .then((id) => setFormData((prev) => ({ ...prev, employeeId: id })))
+        .catch(() => setFormData((prev) => ({ ...prev, employeeId: '' })));
     }
-  }, [employeeId]);
+  }, [employeeId, formData.company]);
+
+  const isRelieved = formData.status === EMPLOYEE_STATUS.RELIEVED;
+  const exitDateMissing = isRelieved && !formData.exitDate.trim();
+  const employeeIdEmpty = !!employeeId && !formData.employeeId.trim();
+  const companyMissing = !employeeId && !formData.company.trim();
+  const canSave = !exitDateMissing && !employeeIdEmpty && !companyMissing;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSave) return;
 
-    const submitData = {
+    const submitData: any = {
       ...formData,
       status: formData.status as EmployeeStatus,
       hireDate: new Date(formData.hireDate).toISOString(),
     };
+    if (isRelieved) {
+      submitData.exitDate = new Date(formData.exitDate).toISOString();
+    } else {
+      submitData.exitDate = null;
+    }
+    if (employeeId) {
+      submitData.employeeId = formData.employeeId.trim();
+      if (formData.company) submitData.company = formData.company as 'V-Accel' | 'Axess Technology';
+    } else {
+      submitData.company = formData.company as 'V-Accel' | 'Axess Technology';
+      submitData.employeeId = formData.employeeId.trim() || undefined;
+    }
 
     if (employeeId) {
       updateEmployee({ id: employeeId, data: submitData });
@@ -98,13 +122,45 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Company <span className="text-red-500">*</span>
+            </label>
+            <Select
+              options={[
+                { value: '', label: 'Select company...' },
+                ...EMPLOYEE_COMPANIES.map((c) => ({ value: c, label: c })),
+              ]}
+              value={formData.company}
+              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Employee ID
             </label>
-            <Input
-              value={employeeIdDisplay || 'Auto-generated'}
-              readOnly
-              className="bg-gray-50 font-mono cursor-not-allowed"
-            />
+            {employeeId ? (
+              <>
+                <Input
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                  required
+                  placeholder="e.g. VA1000 or AT1000"
+                  className="font-mono"
+                />
+                <p className="text-xs text-gray-500">Employee ID must be unique.</p>
+              </>
+            ) : (
+              <>
+                <Input
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                  placeholder="Select company to generate"
+                  className="font-mono"
+                />
+                <p className="text-xs text-gray-500">Auto-generated from company; you may override.</p>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -189,18 +245,38 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               options={[
                 { value: EMPLOYEE_STATUS.ACTIVE, label: 'Active' },
                 { value: EMPLOYEE_STATUS.INACTIVE, label: 'Inactive' },
+                { value: EMPLOYEE_STATUS.RELIEVED, label: 'Relieved' },
               ]}
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  status: e.target.value,
+                  exitDate: e.target.value === EMPLOYEE_STATUS.RELIEVED ? formData.exitDate : '',
+                })
+              }
             />
           </div>
+          {isRelieved && (
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Exit Date <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={formData.exitDate}
+                onChange={(e) => setFormData({ ...formData, exitDate: e.target.value })}
+                required={isRelieved}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isCreating || isUpdating}>
+          <Button type="submit" isLoading={isCreating || isUpdating} disabled={!canSave}>
             {employeeId ? 'Update' : 'Create'}
           </Button>
         </div>

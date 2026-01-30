@@ -5,8 +5,10 @@ import {
   createEmployee,
   getEmployees,
   getEmployeesPaginated,
+  getNextEmployeeIdForCompany,
   getNextEmployeeId,
   getEmployeeById,
+  getActiveAssignmentCount,
   updateEmployee,
   deactivateEmployee,
   updateEmployeeStatus,
@@ -19,6 +21,7 @@ export const createEmployeeController = async (req: AuthRequest, res: Response):
       ...validatedData,
       hireDate: new Date(validatedData.hireDate),
       status: validatedData.status,
+      exitDate: validatedData.exitDate ? new Date(validatedData.exitDate) : null,
     });
     res.status(201).json({ message: 'Employee created successfully', employee });
   } catch (error: any) {
@@ -34,7 +37,15 @@ export const createEmployeeController = async (req: AuthRequest, res: Response):
       res.status(400).json({ message: error.message });
       return;
     }
-    if (error.message === 'Employee ID must match format EMP-001') {
+    if (error.message?.includes('Employee ID must match format')) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    if (error.message === 'Invalid company for ID generation') {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    if (error.message === 'Exit date is required when status is Relieved') {
       res.status(400).json({ message: error.message });
       return;
     }
@@ -44,7 +55,10 @@ export const createEmployeeController = async (req: AuthRequest, res: Response):
 
 export const getNextEmployeeIdController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const nextEmployeeId = await getNextEmployeeId();
+    const company = typeof req.query.company === 'string' ? req.query.company : undefined;
+    const nextEmployeeId = company
+      ? await getNextEmployeeIdForCompany(company)
+      : await getNextEmployeeId();
     res.status(200).json({ nextEmployeeId });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to generate next Employee ID' });
@@ -102,7 +116,9 @@ export const getEmployeeByIdController = async (req: AuthRequest, res: Response)
       res.status(404).json({ message: 'Employee not found' });
       return;
     }
-    res.status(200).json({ employee });
+    const activeAssetCount = await getActiveAssignmentCount(req.params.id);
+    const employeeWithCount = { ...employee.toObject(), activeAssetCount };
+    res.status(200).json({ employee: employeeWithCount });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to fetch employee' });
   }
@@ -117,7 +133,17 @@ export const updateEmployeeController = async (req: AuthRequest, res: Response):
       updateData.hireDate = new Date(validatedData.hireDate);
     }
     if (validatedData.status) {
-      updateData.status = validatedData.status.toUpperCase();
+      updateData.status = validatedData.status === 'Relieved' ? 'Relieved' : validatedData.status.toUpperCase();
+    }
+    if (validatedData.exitDate !== undefined) {
+      updateData.exitDate = validatedData.exitDate ? new Date(validatedData.exitDate) : null;
+    }
+
+    if (validatedData.employeeId !== undefined) {
+      updateData.employeeId = validatedData.employeeId;
+    }
+    if (validatedData.company !== undefined) {
+      updateData.company = validatedData.company;
     }
 
     const employee = await updateEmployee(req.params.id, updateData);
@@ -130,6 +156,14 @@ export const updateEmployeeController = async (req: AuthRequest, res: Response):
     if (error.name === 'ZodError') {
       console.error('Employee update validation error:', error.errors);
       res.status(400).json({ message: 'Validation error', errors: error.errors });
+      return;
+    }
+    if (error.message === 'Employee ID already exists.') {
+      res.status(409).json({ message: error.message });
+      return;
+    }
+    if (error.message === 'Exit date is required when status is Relieved') {
+      res.status(400).json({ message: error.message });
       return;
     }
     res.status(400).json({ message: error.message || 'Failed to update employee' });
@@ -145,6 +179,10 @@ export const deactivateEmployeeController = async (req: AuthRequest, res: Respon
     }
     res.status(200).json({ message: 'Employee deactivated successfully', employee });
   } catch (error: any) {
+    if (error.message === 'Employee cannot be deactivated while holding active assets.') {
+      res.status(400).json({ message: error.message });
+      return;
+    }
     res.status(500).json({ message: error.message || 'Failed to deactivate employee' });
   }
 };

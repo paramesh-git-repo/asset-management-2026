@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import { Package, Calendar, Tag, Hash, ShieldCheck, History, Settings, User, AlertTriangle } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { AssetActivityTimelineModal } from '../Reports/AssetActivityTimelineModal';
 
 export const AssetDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ export const AssetDetails: React.FC = () => {
     const { data: asset, isLoading, error } = useAsset(id || '');
     const { data: assignmentHistory = [], isLoading: historyLoading } = useAssignmentHistory(id, undefined);
     const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
+    const [showActivityTimeline, setShowActivityTimeline] = useState(false);
     
     const isWarrantyExpired = asset?.warrantyExpiration 
       ? new Date(asset.warrantyExpiration) < new Date()
@@ -60,6 +62,10 @@ export const AssetDetails: React.FC = () => {
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => navigate('/assets')}>
                         Back to List
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowActivityTimeline(true)}>
+                        <History className="mr-2 h-4 w-4" />
+                        View Activity Timeline
                     </Button>
                     <Button onClick={() => {
                         navigate('/assets');
@@ -224,6 +230,16 @@ export const AssetDetails: React.FC = () => {
                 </Card>
             )}
 
+            {showActivityTimeline && asset && (
+                <AssetActivityTimelineModal
+                    isOpen={showActivityTimeline}
+                    onClose={() => setShowActivityTimeline(false)}
+                    assetName={asset.name}
+                    assetId={asset.assetId}
+                    category={asset.category}
+                    assignments={assignmentHistory}
+                />
+            )}
         </div>
     );
 };

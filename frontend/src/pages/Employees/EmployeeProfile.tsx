@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { formatDate, getStatusColor } from '../../utils/helpers';
-import { User, Mail, Phone, Building2, Briefcase, Calendar, ArrowLeft, Package, Hash } from 'lucide-react';
+import { User, Mail, Phone, Building2, Briefcase, Calendar, ArrowLeft, Package, Hash, LogOut } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../context/AuthContext';
 
@@ -57,7 +57,7 @@ export const EmployeeProfile: React.FC = () => {
                 "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
                 getStatusColor(employee.status)
               )}>
-                {employee.status}
+                {employee.status === 'Relieved' ? 'RELIEVED' : employee.status}
               </span>
             </div>
           </div>
@@ -91,6 +91,15 @@ export const EmployeeProfile: React.FC = () => {
               </div>
               <p className="font-medium text-gray-900 font-mono">{employee.employeeId}</p>
             </div>
+            {employee.company && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Building2 className="h-4 w-4" />
+                  Company
+                </div>
+                <p className="font-medium text-gray-900">{employee.company}</p>
+              </div>
+            )}
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Mail className="h-4 w-4" />
@@ -126,6 +135,17 @@ export const EmployeeProfile: React.FC = () => {
               </div>
               <p className="font-medium text-gray-900">{formatDate(employee.hireDate)}</p>
             </div>
+            {employee.status === 'Relieved' && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <LogOut className="h-4 w-4" />
+                  Exit Date
+                </div>
+                <p className="font-medium text-gray-900">
+                  {employee.exitDate ? formatDate(employee.exitDate) : '—'}
+                </p>
+              </div>
+            )}
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Package className="h-4 w-4" />
@@ -144,7 +164,7 @@ export const EmployeeProfile: React.FC = () => {
                 "w-fit px-3 py-1 rounded-full text-sm font-bold",
                 getStatusColor(employee.status)
               )}>
-                {employee.status}
+                {employee.status === 'Relieved' ? 'RELIEVED' : employee.status}
               </span>
             </div>
             <div className="flex flex-col gap-1 border-t border-gray-100 pt-4">
@@ -152,8 +172,14 @@ export const EmployeeProfile: React.FC = () => {
               <span className="text-2xl font-bold text-gray-900">{activeAssignments.length}</span>
             </div>
             <div className="flex flex-col gap-1 border-t border-gray-100 pt-4">
-              <span className="text-xs text-gray-500">Joined</span>
-              <span className="text-sm font-medium">{formatDate(employee.hireDate)}</span>
+              <span className="text-xs text-gray-500">
+                {employee.status === 'ACTIVE' ? 'Joined' : employee.status === 'Relieved' ? 'Exited' : 'Joined'}
+              </span>
+              <span className="text-sm font-medium">
+                {employee.status === 'Relieved' && employee.exitDate
+                  ? formatDate(employee.exitDate)
+                  : formatDate(employee.hireDate)}
+              </span>
             </div>
           </div>
         </Card>

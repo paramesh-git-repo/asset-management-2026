@@ -25,24 +25,56 @@ export const updateProfileSchema = z.object({
 });
 
 // Employee Schemas
-export const createEmployeeSchema = z.object({
-  employeeId: z
-    .string()
-    .regex(/^EMP-\d{3,}$/, 'Employee ID must match format EMP-001')
-    .optional(),
+const employeeStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'Relieved']);
+const exitDateSchema = z.string().datetime('Invalid date format').nullable().optional();
+
+const companyEnum = z.enum(['V-Accel', 'Axess Technology']);
+const employeeIdCreate = z
+  .string()
+  .optional()
+  .refine(
+    (s) => !s || /^(VA|AT)\d{4,}$/i.test(s) || /^EMP-\d{3,}$/.test(s),
+    'Employee ID must match format VA1000, AT1000, or EMP-001'
+  );
+
+const createEmployeeBase = z.object({
+  employeeId: employeeIdCreate,
+  company: companyEnum.optional(),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(1, 'Phone is required'),
   department: z.string().min(1, 'Department is required'),
   position: z.string().min(1, 'Position is required'),
   hireDate: z.string().datetime('Invalid date format'),
-  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+  status: employeeStatusEnum.optional(),
+  exitDate: exitDateSchema,
 });
 
-// Do not allow updating employeeId via update endpoint
-export const updateEmployeeSchema = createEmployeeSchema
-  .omit({ employeeId: true })
-  .partial();
+const exitDateRequiredWhenRelieved = (data: { status?: string; exitDate?: string | null }) =>
+  data.status === 'Relieved' ? data.exitDate != null && data.exitDate !== '' : true;
+
+export const createEmployeeSchema = createEmployeeBase.refine(exitDateRequiredWhenRelieved, {
+  message: 'Exit date is required when status is Relieved',
+  path: ['exitDate'],
+});
+
+export const updateEmployeeSchema = createEmployeeBase
+  .omit({ employeeId: true, company: true })
+  .extend({
+    employeeId: z
+      .string()
+      .min(1, 'Employee ID is required')
+      .transform((s) => s.trim())
+      .refine((s) => s.length > 0, 'Employee ID is required')
+      .refine((s) => /^[A-Za-z0-9-]+$/.test(s), 'Employee ID may only contain letters, numbers, and hyphens')
+      .optional(),
+    company: companyEnum.optional(),
+  })
+  .partial()
+  .refine(exitDateRequiredWhenRelieved, {
+    message: 'Exit date is required when status is Relieved',
+    path: ['exitDate'],
+  });
 
 export const updateEmployeeStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE']),

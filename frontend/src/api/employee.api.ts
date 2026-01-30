@@ -41,8 +41,10 @@ export const employeeApi = {
     return response.data.employee;
   },
 
-  getNextEmployeeId: async (): Promise<string> => {
-    const response = await apiClient.get<NextEmployeeIdResponse>('/employees/next-id');
+  getNextEmployeeId: async (company?: string): Promise<string> => {
+    const response = await apiClient.get<NextEmployeeIdResponse>('/employees/next-id', {
+      params: company ? { company } : undefined,
+    });
     return response.data.nextEmployeeId;
   },
 
@@ -58,6 +60,11 @@ export const employeeApi = {
 
   updateEmployeeStatus: async (id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Employee> => {
     const response = await apiClient.patch<{ message: string; employee: Employee }>(`/employees/${id}/status`, { status });
+    return response.data.employee;
+  },
+
+  deactivateEmployee: async (id: string): Promise<Employee> => {
+    const response = await apiClient.patch<{ message: string; employee: Employee }>(`/employees/${id}/deactivate`);
     return response.data.employee;
   },
 };

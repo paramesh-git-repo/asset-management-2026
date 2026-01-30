@@ -96,31 +96,34 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
             }}
           />
 
-          <AsyncPaginatedSelect
-            label="Employee"
-            placeholder="Select an employee"
-            searchPlaceholder="Search employees by name, email, dept…"
-            value={formData.employee}
-            onChange={(employee) => setFormData({ ...formData, employee })}
-            disabled={isCreating}
-            pageSize={10}
-            debounceMs={300}
-            fetchPage={async ({ search, page, limit }) => {
-              const res = await employeeApi.searchEmployees({
-                status: 'ACTIVE',
-                search,
-                page,
-                limit,
-              });
-              return {
-                items: res.employees.map((e) => ({
-                  id: e._id,
-                  label: `${e.name} (${e.employeeId})`,
-                })),
-                hasMore: res.pagination.hasMore,
-              };
-            }}
-          />
+          <div className="space-y-1">
+            <AsyncPaginatedSelect
+              label="Employee"
+              placeholder="Select an employee"
+              searchPlaceholder="Search employees by name, email, dept…"
+              value={formData.employee}
+              onChange={(employee) => setFormData({ ...formData, employee })}
+              disabled={isCreating}
+              pageSize={10}
+              debounceMs={300}
+              fetchPage={async ({ search, page, limit }) => {
+                const res = await employeeApi.searchEmployees({
+                  status: 'ACTIVE',
+                  search,
+                  page,
+                  limit,
+                });
+                return {
+                  items: res.employees.map((e) => ({
+                    id: e._id,
+                    label: `${e.name} (${e.employeeId})`,
+                  })),
+                  hasMore: res.pagination.hasMore,
+                };
+              }}
+            />
+            <p className="text-xs text-gray-500">Relieved employees cannot be assigned assets.</p>
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">

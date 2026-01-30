@@ -3,7 +3,6 @@ import { useAssignments } from '../../hooks/useAssignments';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ScrollArea } from '../../components/ui/ScrollArea';
-import { formatDateTime } from '../../utils/helpers';
 import { AssignmentForm } from './AssignmentForm';
 import { ReturnAssetModal } from './ReturnAssetModal';
 import { EditAssignmentModal } from './EditAssignmentModal';
@@ -255,18 +254,7 @@ export const AssignmentList: React.FC = () => {
               <div className="animate-pulse">Loading assignments...</div>
             </div>
           ) : activeTab === 'active' ? (
-            <div className="rounded-md border border-gray-200">
-              <div className="grid grid-cols-[2.0fr_1.2fr_2fr_1.3fr_1.2fr_1.2fr_1.8fr_0.9fr_1.1fr] gap-4 border-b border-gray-200 bg-gray-50 px-2 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-center">
-                <div>Asset</div>
-                <div>Category</div>
-                <div>Assigned To</div>
-                <div>Department</div>
-                <div>Assigned Date</div>
-                <div>Due Date</div>
-                <div>Accessories</div>
-                <div>Status</div>
-                <div>Actions</div>
-              </div>
+            <div className="rounded-md border border-gray-200 overflow-hidden">
               {activeAssignments.length === 0 ? (
                 <div className="flex h-48 items-center justify-center text-sm text-gray-500">
                   No active assignments found.
@@ -282,126 +270,118 @@ export const AssignmentList: React.FC = () => {
                     }))
                   }
                 >
-                  <div className="min-w-[1000px] divide-y divide-gray-100">
-                    {activeAssignments.map((assignment) => (
-                      <div
-                        key={assignment._id}
-                        className="grid items-center grid-cols-[2.0fr_1.2fr_2fr_1.3fr_1.2fr_1.2fr_1.4fr_0.9fr_1.1fr] gap-4 px-2 py-4 text-sm text-gray-700 text-center"
-                      >
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          <span className="max-w-[200px] truncate font-medium text-gray-900">
-                            {assignment.asset.name}
-                          </span>
-                          <span className="max-w-[200px] truncate text-xs text-gray-500">
-                            {assignment.asset.assetId}
-                          </span>
-                        </div>
-                        <div className="flex h-full items-center justify-center text-center">
-                          <span className="text-gray-600">
+                  <table className="w-full table-fixed border-collapse text-sm text-gray-700" style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <colgroup>
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '10%' }} />
+                    </colgroup>
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Asset</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Category</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Assigned To</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Department</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Assigned Date</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Due Date</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Accessories</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {activeAssignments.map((assignment) => (
+                        <tr key={assignment._id} className="min-h-[72px] border-b border-gray-100 transition-colors hover:bg-gray-50/50" style={{ minHeight: 72 }}>
+                          <td className="p-2 align-middle" style={{ verticalAlign: 'middle', minHeight: 72 }}>
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                              <span className="w-full truncate font-medium text-gray-900 px-1">{assignment.asset.name}</span>
+                              <span className="w-full truncate text-xs text-gray-500 px-1">{assignment.asset.assetId}</span>
+                            </div>
+                          </td>
+                          <td className="p-2 align-middle text-center text-gray-600" style={{ verticalAlign: 'middle' }}>
                             {assignment.asset.category ? assignment.asset.category : '—'}
-                          </span>
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          <span className="max-w-[200px] truncate font-medium text-gray-900">
-                            {assignment.employee.name}
-                          </span>
-                          <span className="max-w-[220px] truncate text-xs text-gray-500">
-                            {((assignment.employee as any).employeeId ? `${(assignment.employee as any).employeeId} • ` : '') + assignment.employee.email}
-                          </span>
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          <span className="text-gray-600">{assignment.employee.department}</span>
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          {(() => {
-                            const { date, time } = getDateTimeParts(assignment.assignedAt || assignment.assignedDate);
-                            return (
-                              <>
-                                <span className="text-sm font-medium text-gray-900">{date}</span>
-                                <span className="text-xs text-gray-500">{time}</span>
-                              </>
-                            );
-                          })()}
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          <span className="text-gray-600">
-                            {assignment.dueDate ? formatDateTime(assignment.dueDate) : '-'}
-                          </span>
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          {(() => {
-                            // Active Assignments: Show ONLY issued accessories
-                            const issued = getIssuedAccessories(assignment);
-                            
-                            if (issued.length === 0) {
-                              return <span className="text-gray-400">—</span>;
-                            }
-                            
-                            return (
-                              <div className="flex flex-col items-center gap-1">
-                                {issued.map((item) => (
-                                  <span
-                                    key={item}
-                                    className={`min-w-[72px] rounded px-2 py-0.5 text-xs ${getAccessoryBadgeClass(
-                                      item
-                                    )}`}
-                                  >
+                          </td>
+                          <td className="p-2 align-middle min-w-0" style={{ verticalAlign: 'middle' }}>
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center min-w-0">
+                              <span className="w-full truncate font-medium text-gray-900 px-1">{assignment.employee.name}</span>
+                              <span className="w-full truncate text-xs text-gray-500 px-1 whitespace-nowrap overflow-hidden text-ellipsis" title={assignment.employee.email}>
+                                {assignment.employee.email}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-2 align-middle text-center text-gray-600" style={{ verticalAlign: 'middle' }}>
+                            {assignment.employee.department}
+                          </td>
+                          <td className="p-2 align-middle" style={{ verticalAlign: 'middle' }}>
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                              {(() => {
+                                const { date, time } = getDateTimeParts(assignment.assignedAt || assignment.assignedDate);
+                                return (
+                                  <>
+                                    <span className="text-sm font-medium text-gray-900">{date}</span>
+                                    <span className="text-xs text-gray-500">{time}</span>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </td>
+                          <td className="p-2 align-middle" style={{ verticalAlign: 'middle' }}>
+                            <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                              {(() => {
+                                const { date, time } = getDateTimeParts(assignment.dueDate || undefined);
+                                if (date === '-' && !time) return <span className="text-gray-600">—</span>;
+                                return (
+                                  <>
+                                    <span className="text-sm font-medium text-gray-900">{date}</span>
+                                    <span className="text-xs text-gray-500">{time}</span>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </td>
+                          <td className="p-2 align-middle" style={{ verticalAlign: 'middle', minWidth: 0 }}>
+                            <div className="flex flex-wrap items-center justify-center gap-1 max-h-[2.5rem] overflow-hidden">
+                              {(() => {
+                                const issued = getIssuedAccessories(assignment);
+                                if (issued.length === 0) return <span className="text-gray-400">—</span>;
+                                return issued.map((item) => (
+                                  <span key={item} className={`shrink-0 rounded px-2 py-0.5 text-xs ${getAccessoryBadgeClass(item)}`}>
                                     {item}
                                   </span>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          <div className="flex justify-center">
-                            <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                              Active
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                          {assignment.status === 'Active' && (
-                            <div className="flex items-center justify-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(assignment)}
-                                title="Edit assignment"
-                                className="rounded-md border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleReturn(assignment)}
-                                title="Return asset"
-                                className="rounded-md border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                              >
-                                <RotateCcw size={16} />
-                              </button>
+                                ));
+                              })()}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          </td>
+                          <td className="p-2 align-middle text-center" style={{ verticalAlign: 'middle' }}>
+                            <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">Active</span>
+                          </td>
+                          <td className="p-2 align-middle text-center" style={{ verticalAlign: 'middle' }}>
+                            {assignment.status === 'Active' && (
+                              <div className="flex items-center justify-center gap-2">
+                                <button type="button" onClick={() => handleEdit(assignment)} title="Edit assignment" className="rounded-md border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                                  <Pencil size={16} />
+                                </button>
+                                <button type="button" onClick={() => handleReturn(assignment)} title="Return asset" className="rounded-md border border-gray-300 p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                                  <RotateCcw size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </ScrollArea>
               )}
             </div>
           ) : (
-            <div className="rounded-md border border-gray-200">
-              <div className="grid grid-cols-[2.0fr_1.2fr_2fr_1.3fr_1.2fr_1.2fr_1.8fr_0.9fr_1.1fr_1.1fr] gap-4 border-b border-gray-200 bg-gray-50 px-2 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 text-center">
-                <div>Asset</div>
-                <div>Category</div>
-                <div>Assigned To</div>
-                <div>Department</div>
-                <div>Assigned Date</div>
-                <div>Returned Date</div>
-                <div>Accessories</div>
-                <div>Condition</div>
-                <div>Status</div>
-                <div>Actions</div>
-              </div>
+            <div className="rounded-md border border-gray-200 overflow-hidden">
               {returnedAssignments.length === 0 ? (
                 <div className="flex h-48 items-center justify-center text-sm text-gray-500">
                   No returned assets found.
@@ -417,124 +397,124 @@ export const AssignmentList: React.FC = () => {
                     }))
                   }
                 >
-                  <div className="min-w-[1000px] divide-y divide-gray-100">
-                    {returnedAssignments.map((assignment) => {
-                      const returnedDate = assignment.returnedAt ?? assignment.returnDate;
-                      const conditionLabel =
-                        assignment.condition === 'GOOD'
-                          ? 'Good'
-                          : assignment.condition === 'DAMAGED'
-                          ? 'Damaged'
-                          : '-';
+                  <table className="w-full table-fixed border-collapse text-sm text-gray-700" style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <colgroup>
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '8%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '10%' }} />
+                    </colgroup>
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Asset</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Category</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Assigned To</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Department</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Assigned Date</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Returned Date</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Accessories</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Condition</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                        <th className="h-12 px-2 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {returnedAssignments.map((assignment) => {
+                        const returnedDate = assignment.returnedAt ?? assignment.returnDate;
+                        const conditionLabel =
+                          assignment.condition === 'GOOD'
+                            ? 'Good'
+                            : assignment.condition === 'DAMAGED'
+                            ? 'Damaged'
+                            : '-';
+                        const issued = getIssuedAccessories(assignment);
+                        const returnedAcc = getReturnedAccessories(assignment);
+                        const pending = issued.filter((item) => !returnedAcc.includes(item));
+                        const hasPending = issued.length > returnedAcc.length;
 
-                      return (
-                        <div
-                          key={assignment._id}
-                          className="grid items-center grid-cols-[2.0fr_1.2fr_2fr_1.3fr_1.2fr_1.2fr_1.8fr_0.9fr_1.1fr_1.1fr] gap-4 px-2 py-4 text-sm text-gray-700 text-center"
-                        >
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            <span className="max-w-[200px] truncate font-medium text-gray-900">
-                              {assignment.asset.name}
-                            </span>
-                            <span className="max-w-[200px] truncate text-xs text-gray-500">
-                              {assignment.asset.assetId}
-                            </span>
-                          </div>
-                          <div className="flex h-full items-center justify-center text-center">
-                            <span className="text-gray-600">
+                        return (
+                          <tr key={assignment._id} className="min-h-[72px] border-b border-gray-100 transition-colors hover:bg-gray-50/50" style={{ minHeight: 72 }}>
+                            <td className="p-2 align-middle min-w-0" style={{ verticalAlign: 'middle', minHeight: 72 }}>
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                                <span className="w-full truncate font-medium text-gray-900 px-1">{assignment.asset.name}</span>
+                                <span className="w-full truncate text-xs text-gray-500 px-1">{assignment.asset.assetId}</span>
+                              </div>
+                            </td>
+                            <td className="p-2 align-middle text-center text-gray-600" style={{ verticalAlign: 'middle' }}>
                               {assignment.asset.category ? assignment.asset.category : '—'}
-                            </span>
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            <span className="max-w-[200px] truncate font-medium text-gray-900">
-                              {assignment.employee.name}
-                            </span>
-                            <span className="max-w-[200px] truncate text-xs text-gray-500">
-                              {((assignment.employee as any).employeeId ? `${(assignment.employee as any).employeeId} • ` : '') + assignment.employee.email}
-                            </span>
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            <span className="text-gray-600">{assignment.employee.department}</span>
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            {(() => {
-                              const { date, time } = getDateTimeParts(assignment.assignedAt || assignment.assignedDate);
-                              return (
-                                <>
-                                  <span className="text-sm font-medium text-gray-900">{date}</span>
-                                  <span className="text-xs text-gray-500">{time}</span>
-                                </>
-                              );
-                            })()}
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            {(() => {
-                              const { date, time } = getDateTimeParts(returnedDate || undefined);
-                              return (
-                                <>
-                                  <span className="text-sm font-medium text-gray-900">{date}</span>
-                                  <span className="text-xs text-gray-500">{time}</span>
-                                </>
-                              );
-                            })()}
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            {(() => {
-                              // Returned Assets: Show returned accessories + compute pending
-                              const issued = getIssuedAccessories(assignment);
-                              const returned = getReturnedAccessories(assignment);
-                              const pending = issued.filter((item) => !returned.includes(item));
-                              
-                              if (returned.length === 0 && pending.length === 0) {
-                                return <span className="text-gray-400">—</span>;
-                              }
-                              
-                              return (
-                                <div className="flex flex-col items-center gap-1">
-                                  {returned.map((item) => (
-                                    <span
-                                      key={item}
-                                      className={`min-w-[72px] rounded px-2 py-0.5 text-xs ${getAccessoryBadgeClass(
-                                        item
-                                      )}`}
-                                    >
-                                      {item}
-                                    </span>
-                                  ))}
-                                  {pending.length > 0 && (
-                                    <div className="mt-1 flex flex-col items-center gap-1">
-                                      {pending.map((item) => (
-                                        <span
-                                          key={item}
-                                          className="min-w-[72px] rounded bg-red-50 px-2 py-0.5 text-xs text-red-700"
-                                        >
-                                          Pending: {item}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            <span className="text-gray-600">{conditionLabel}</span>
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            <div className="flex justify-center">
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                Returned
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-                            {(() => {
-                              const issued = getIssuedAccessories(assignment);
-                              const returned = getReturnedAccessories(assignment);
-                              const hasPending = issued.length > returned.length;
-                              
-                              if (hasPending) {
-                                return (
+                            </td>
+                            <td className="p-2 align-middle min-w-0" style={{ verticalAlign: 'middle' }}>
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center min-w-0">
+                                <span className="w-full truncate font-medium text-gray-900 px-1">{assignment.employee.name}</span>
+                                <span className="w-full truncate text-xs text-gray-500 px-1 whitespace-nowrap overflow-hidden text-ellipsis" title={assignment.employee.email}>
+                                  {assignment.employee.email}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2 align-middle text-center text-gray-600" style={{ verticalAlign: 'middle' }}>
+                              {assignment.employee.department}
+                            </td>
+                            <td className="p-2 align-middle" style={{ verticalAlign: 'middle' }}>
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                                {(() => {
+                                  const { date, time } = getDateTimeParts(assignment.assignedAt || assignment.assignedDate);
+                                  return (
+                                    <>
+                                      <span className="text-sm font-medium text-gray-900">{date}</span>
+                                      <span className="text-xs text-gray-500">{time}</span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </td>
+                            <td className="p-2 align-middle" style={{ verticalAlign: 'middle' }}>
+                              <div className="flex flex-col items-center justify-center gap-0.5 text-center">
+                                {(() => {
+                                  const { date, time } = getDateTimeParts(returnedDate || undefined);
+                                  return (
+                                    <>
+                                      <span className="text-sm font-medium text-gray-900">{date}</span>
+                                      <span className="text-xs text-gray-500">{time}</span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </td>
+                            <td className="p-2 align-middle min-w-0" style={{ verticalAlign: 'middle' }}>
+                              <div className="flex flex-wrap items-center justify-center gap-1 max-h-[2.5rem] overflow-hidden">
+                                {returnedAcc.length === 0 && pending.length === 0 ? (
+                                  <span className="text-gray-400">—</span>
+                                ) : (
+                                  <>
+                                    {returnedAcc.map((item) => (
+                                      <span key={item} className={`shrink-0 rounded px-2 py-0.5 text-xs ${getAccessoryBadgeClass(item)}`}>
+                                        {item}
+                                      </span>
+                                    ))}
+                                    {pending.map((item) => (
+                                      <span key={item} className="shrink-0 rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">
+                                        Pending: {item}
+                                      </span>
+                                    ))}
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-2 align-middle text-center text-gray-600" style={{ verticalAlign: 'middle' }}>
+                              {conditionLabel}
+                            </td>
+                            <td className="p-2 align-middle text-center" style={{ verticalAlign: 'middle' }}>
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Returned</span>
+                            </td>
+                            <td className="p-2 align-middle text-center" style={{ verticalAlign: 'middle' }}>
+                              {hasPending ? (
+                                <div className="flex items-center justify-center">
                                   <button
                                     type="button"
                                     onClick={() => handleUpdateAccessories(assignment)}
@@ -543,15 +523,14 @@ export const AssignmentList: React.FC = () => {
                                   >
                                     <Pencil size={16} />
                                   </button>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </ScrollArea>
               )}
             </div>

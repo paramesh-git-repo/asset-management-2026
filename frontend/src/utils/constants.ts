@@ -7,6 +7,7 @@ export const ROLES = {
 export const EMPLOYEE_STATUS = {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE',
+  RELIEVED: 'Relieved',
 } as const;
 
 export const ASSET_STATUS = {

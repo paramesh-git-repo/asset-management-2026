@@ -26,6 +26,7 @@ export const getStatusColor = (status: string): string => {
       return 'bg-green-100 text-green-800';
     case 'Inactive':
     case 'INACTIVE':
+    case 'Relieved':
     case 'Retired':
       return 'bg-gray-100 text-gray-800';
     case 'Assigned':

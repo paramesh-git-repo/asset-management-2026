@@ -15,10 +15,13 @@ export const createAssignment = async (
     throw new Error('Asset is not available for assignment');
   }
 
-  // Check if employee exists
+  // Check if employee exists and is not Relieved
   const employee = await Employee.findById(data.employee);
   if (!employee) {
     throw new Error('Employee not found');
+  }
+  if (employee.status === 'Relieved') {
+    throw new Error('Relieved employees cannot be assigned assets');
   }
 
   // Check if employee has active assignment for this asset

@@ -6,20 +6,33 @@ import { Card } from '../components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
 import { Button } from '../components/ui/Button';
 import { ASSET_STATUS } from '../utils/constants';
-import { Download, Package, Users, Building2, AlertCircle, Clock } from 'lucide-react';
+import { Download, Package, Users } from 'lucide-react';
 import { AssetTimelineModal } from './Reports/AssetTimelineModal';
+import { AssetActivityTimelineModal } from './Reports/AssetActivityTimelineModal';
 import { Assignment } from '../types/assignment.types';
+import { cn } from '../utils/cn';
+
+type ReportTab = 'employee' | 'asset';
 
 export const Reports: React.FC = () => {
   const { assets, isLoading: assetsLoading } = useAssets();
   const { employees, isLoading: employeesLoading } = useEmployees();
   const { assignments, isLoading: assignmentsLoading } = useAssignments();
 
+  const [reportTab, setReportTab] = useState<ReportTab>('employee');
   const [selectedEmployee, setSelectedEmployee] = useState<{
     label: string;
     assignments: Assignment[];
+    status?: string;
+    exitDate?: string | null;
   } | null>(null);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [selectedAssetTimeline, setSelectedAssetTimeline] = useState<{
+    assetName: string;
+    assetId: string;
+    category: string;
+    assignments: Assignment[];
+  } | null>(null);
 
   const isLoading = assetsLoading || employeesLoading || assignmentsLoading;
 
@@ -172,17 +185,59 @@ export const Reports: React.FC = () => {
         activeAssets: activeAssets.length,
         totalAssetsIssued: allAssignments.length,
         allAssignments,
+        employee,
       }))
       .filter((summary) => summary.totalAssetsIssued > 0)
       .sort((a, b) => b.totalAssetsIssued - a.totalAssetsIssued);
   }, [employees, assignments]);
 
+  // Asset Summary: Total Times Issued (all assignments), Currently Assigned, Current Holder
+  const assetSummary = useMemo(() => {
+    const byAssetId = new Map<
+      string,
+      { totalTimesIssued: number; activeAssignment: Assignment | null }
+    >();
+    assets.forEach((asset) => {
+      byAssetId.set(asset._id, { totalTimesIssued: 0, activeAssignment: null });
+    });
+    assignments.forEach((a) => {
+      const assetId = typeof a.asset === 'object' && a.asset && '_id' in a.asset ? a.asset._id : (a as any).asset;
+      const entry = byAssetId.get(assetId);
+      if (entry) {
+        entry.totalTimesIssued += 1;
+        if (a.status === 'Active' && !a.returnedAt && !entry.activeAssignment) {
+          entry.activeAssignment = a;
+        }
+      }
+    });
+    return assets.map((asset) => {
+      const entry = byAssetId.get(asset._id) ?? { totalTimesIssued: 0, activeAssignment: null };
+      const activeAssignment = entry.activeAssignment;
+      const currentHolder =
+        activeAssignment && typeof activeAssignment.employee === 'object' && activeAssignment.employee
+          ? (activeAssignment.employee as { name?: string }).name ?? ''
+          : '';
+      return {
+        assetId: asset._id,
+        assetDisplayId: asset.assetId,
+        assetName: asset.name,
+        category: asset.category,
+        totalTimesIssued: entry.totalTimesIssued,
+        currentlyAssigned: !!activeAssignment,
+        currentHolder,
+      };
+    });
+  }, [assets, assignments]);
+
   const handleEmployeeClick = (employeeId: string) => {
     const summary = employeeSummary.find((e) => e.employeeId === employeeId);
     if (summary) {
+      const emp = summary.employee;
       setSelectedEmployee({
         label: summary.employeeCode ? `${summary.employeeName} (${summary.employeeCode})` : summary.employeeName,
         assignments: summary.allAssignments,
+        status: emp?.status,
+        exitDate: emp?.exitDate,
       });
       setShowTimelineModal(true);
     }
@@ -229,63 +284,38 @@ export const Reports: React.FC = () => {
         </Button>
       </div>
 
-      {/* Top KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="transition-all hover:shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-blue-50">
-              <Package className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Assets</p>
-              <h3 className="text-2xl font-bold text-gray-900">{topKPIs.totalAssets}</h3>
-            </div>
-          </div>
-        </Card>
-        <Card className="transition-all hover:shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-green-50">
-              <Package className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Available</p>
-              <h3 className="text-2xl font-bold text-gray-900">{topKPIs.availableAssets}</h3>
-            </div>
-          </div>
-        </Card>
-        <Card className="transition-all hover:shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-50">
-              <Users className="h-6 w-6 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Assigned</p>
-              <h3 className="text-2xl font-bold text-gray-900">{topKPIs.assignedAssets}</h3>
-            </div>
-          </div>
-        </Card>
-        <Card className="transition-all hover:shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-purple-50">
-              <Clock className="h-6 w-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Returned Today</p>
-              <h3 className="text-2xl font-bold text-gray-900">{topKPIs.returnedToday}</h3>
-            </div>
-          </div>
-        </Card>
-        <Card className="transition-all hover:shadow-md">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-red-50">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Overdue</p>
-              <h3 className="text-2xl font-bold text-gray-900">{topKPIs.overdueAssignments}</h3>
-            </div>
-          </div>
-        </Card>
+      {/* Tab switcher */}
+      <div className="inline-flex rounded-full bg-gray-100 p-1">
+        <button
+          type="button"
+          onClick={() => setReportTab('employee')}
+          className={cn(
+            'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            reportTab === 'employee'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          )}
+        >
+          Employee Summary
+          <span className="inline-flex min-w-[24px] items-center justify-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">
+            {employeeSummary.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setReportTab('asset')}
+          className={cn(
+            'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            reportTab === 'asset'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          )}
+        >
+          Asset Summary
+          <span className="inline-flex min-w-[24px] items-center justify-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">
+            {assetSummary.length}
+          </span>
+        </button>
       </div>
 
       {/* Asset Status Breakdown */}
@@ -310,123 +340,111 @@ export const Reports: React.FC = () => {
         </div>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Category Report */}
-        <Card title="Category Report" description="Assets by category with assigned/available breakdown">
-          {categoryReport.length === 0 ? (
+      {/* Employee Summary tab */}
+      {reportTab === 'employee' && (
+        <Card title="Employee Summary" description="Assets assigned to each employee (click to view timeline)">
+          {employeeSummary.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+              <Users className="h-10 w-10 text-gray-300 mb-3" />
+              <p>No assigned assets found</p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-gray-200 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead>Employee Name</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Active Assets</TableHead>
+                    <TableHead>Total Assets Issued (Lifetime)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employeeSummary.map((summary) => (
+                    <TableRow
+                      key={summary.employeeId}
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleEmployeeClick(summary.employeeId)}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span>{summary.employeeName}</span>
+                          {summary.employeeCode && (
+                            <span className="text-xs text-gray-500 font-mono">{summary.employeeCode}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600">
+                          {summary.department}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-semibold">{summary.activeAssets}</TableCell>
+                      <TableCell>{summary.totalAssetsIssued}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Asset Summary tab */}
+      {reportTab === 'asset' && (
+        <Card title="Asset Summary" description="Assignment history and current holder per asset">
+          {assetSummary.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
               <Package className="h-10 w-10 text-gray-300 mb-3" />
-              <p>No category data available</p>
+              <p>No assets found</p>
             </div>
           ) : (
             <div className="rounded-md border border-gray-200 overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead>Asset Name</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Assigned</TableHead>
-                    <TableHead>Available</TableHead>
+                    <TableHead>Total Times Issued</TableHead>
+                    <TableHead>Currently Assigned</TableHead>
+                    <TableHead>Current Holder</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {categoryReport.map((item) => (
-                    <TableRow key={item.category}>
-                      <TableCell className="font-medium">{item.category}</TableCell>
-                      <TableCell>{item.total}</TableCell>
-                      <TableCell>{item.assigned}</TableCell>
-                      <TableCell>{item.available}</TableCell>
-                    </TableRow>
-                  ))}
+                  {assetSummary.map((row) => {
+                    const assetAssignments = assignments.filter((a) => {
+                      const aid = typeof a.asset === 'object' && a.asset && '_id' in a.asset ? (a.asset as { _id: string })._id : null;
+                      return aid === row.assetId;
+                    });
+                    return (
+                      <TableRow
+                        key={row.assetId}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() =>
+                          setSelectedAssetTimeline({
+                            assetName: row.assetName,
+                            assetId: row.assetDisplayId ?? row.assetId,
+                            category: row.category,
+                            assignments: assetAssignments,
+                          })
+                        }
+                      >
+                        <TableCell className="font-medium">{row.assetName}</TableCell>
+                        <TableCell>{row.category}</TableCell>
+                        <TableCell>{row.totalTimesIssued}</TableCell>
+                        <TableCell>{row.currentlyAssigned ? 'Yes' : 'No'}</TableCell>
+                        <TableCell>{row.currentHolder || '—'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </Card>
+      )}
 
-        {/* Department Report */}
-        <Card title="Department Report" description="Assets and assignments by department">
-          {departmentReport.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <Building2 className="h-10 w-10 text-gray-300 mb-3" />
-              <p>No department data available</p>
-            </div>
-          ) : (
-            <div className="rounded-md border border-gray-200 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead>Department</TableHead>
-                    <TableHead>Total Assets</TableHead>
-                    <TableHead>Active Assignments</TableHead>
-                    <TableHead>Returned (Lifetime)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {departmentReport.map((item) => (
-                    <TableRow key={item.department}>
-                      <TableCell className="font-medium">{item.department}</TableCell>
-                      <TableCell>{item.totalAssets}</TableCell>
-                      <TableCell>{item.activeAssignments}</TableCell>
-                      <TableCell>{item.returnedLifetime}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Employee Summary */}
-      <Card title="Employee Summary" description="Assets assigned to each employee (click to view timeline)">
-        {employeeSummary.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <Users className="h-10 w-10 text-gray-300 mb-3" />
-            <p>No assigned assets found</p>
-          </div>
-        ) : (
-          <div className="rounded-md border border-gray-200 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Active Assets</TableHead>
-                  <TableHead>Total Assets Issued (Lifetime)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {employeeSummary.map((summary) => (
-                  <TableRow
-                    key={summary.employeeId}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => handleEmployeeClick(summary.employeeId)}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <span>{summary.employeeName}</span>
-                        {summary.employeeCode && (
-                          <span className="text-xs text-gray-500 font-mono">{summary.employeeCode}</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600">
-                        {summary.department}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-semibold">{summary.activeAssets}</TableCell>
-                    <TableCell>{summary.totalAssetsIssued}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
-
-      {/* Asset Timeline Modal */}
+      {/* Employee Activity Timeline Modal */}
       {selectedEmployee && (
         <AssetTimelineModal
           isOpen={showTimelineModal}
@@ -436,6 +454,19 @@ export const Reports: React.FC = () => {
           }}
           employeeName={selectedEmployee.label}
           assignments={selectedEmployee.assignments}
+          employee={selectedEmployee.status || selectedEmployee.exitDate ? { status: selectedEmployee.status, exitDate: selectedEmployee.exitDate } : undefined}
+        />
+      )}
+
+      {/* Asset Activity Timeline Modal */}
+      {selectedAssetTimeline && (
+        <AssetActivityTimelineModal
+          isOpen={!!selectedAssetTimeline}
+          onClose={() => setSelectedAssetTimeline(null)}
+          assetName={selectedAssetTimeline.assetName}
+          assetId={selectedAssetTimeline.assetId}
+          category={selectedAssetTimeline.category}
+          assignments={selectedAssetTimeline.assignments}
         />
       )}
     </div>
